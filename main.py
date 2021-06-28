@@ -9,12 +9,7 @@ import base64
 from flask import Flask, request
 
 app = Flask(__name__)
-
-
-# how strong are our keys?
 BITS_REQUIRED = 1024
-
-# what openssl binary do we use to do key manipulation?
 OPENSSL_BINARY = '/usr/bin/openssl'
 d_list = [".com.tr", ".biz.tr", ".info.tr", ".org.tr", ".av.tr", ".pol.tr", ".bel.tr", ".mil.tr", ".bbs.tr", ".k12.tr", ".edu.tr", ".name.tr", ".net.tr", ".gov.tr", ".com", ".net", ".org", ".aero", ".asia", ".biz", ".cat", ".coop", ".edu", ".gov", ".info", ".int", ".jobs", ".mil", ".mobi", ".museum", ".name", ".pro", ".tel",".travel"]
 
@@ -59,9 +54,12 @@ def ExtractRSADnsPublicKey(private_key_file, dns_file):
     pub = "v=DKIM1; k=rsa; h=sha256; p={0}".format(output)
     return pub
 
-def main(d,*args):
-    if len(args) == 1:
-        key_name = "{}.{}".format(args[0],d)
+def main():
+    if request.args.get("s"):
+        d = request.args.get("d")
+        s = request.args.get("s")
+
+        key_name = "{}.{}".format(s,d)
         #key_type = 'rsa'
         private_key_file = key_name + '.key'
         dns_file = key_name + '.dns'
@@ -76,11 +74,13 @@ def main(d,*args):
             {"mail.{}".format(key_name):"92.45.23.132"}
             ],
             "_dmarc.{}".format(key_name):"v=DMARC1; p=none; fo=1; rua=mailto:admin@{}; ruf=mailto:admin@{}; rf=afrf; pct=100".format(key_name,key_name),
-            "{}._domainkey.{}".format(args[0],key_name):pub,
-            args[0]:priv
+            "{}._domainkey.{}".format(s,key_name):pub,
+            s:priv
         }
         return keys
-    else:
+    elif request.args.get("d"):
+        d = request.args.get("d")
+
         clean_domain = ""
         for i in d_list:
             if i in d:
@@ -106,17 +106,16 @@ def main(d,*args):
             clean_domain:priv
         }
         return keys
+    else:
+        return {
+            "Error":" 'd' is required "
+        }
 
     
 
 @app.route("/")
 def home():
-    d = request.args.get("d")
-    s = request.args.get("s")
-    if s is None:
-        return main(d)
-    else:
-        return main(d,s)
+    return main()
 
 
 if __name__ == "__main__":
