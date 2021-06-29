@@ -55,7 +55,7 @@ def ExtractRSADnsPublicKey(private_key_file, dns_file):
     return pub
 
 def main():
-    if request.args.get("s"):
+    if request.args.get("s") and request.args.get("d"):
         d = request.args.get("d")
         s = request.args.get("s")
 
