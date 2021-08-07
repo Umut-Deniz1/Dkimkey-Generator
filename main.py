@@ -7,11 +7,12 @@ import argparse
 import hashlib
 import base64
 from flask import Flask, request
+import re
 
 app = Flask(__name__)
 BITS_REQUIRED = 1024
 OPENSSL_BINARY = '/usr/bin/openssl'
-d_list = [".com.tr", ".biz.tr", ".info.tr", ".org.tr", ".av.tr", ".pol.tr", ".bel.tr", ".mil.tr", ".bbs.tr", ".k12.tr", ".edu.tr", ".name.tr", ".net.tr", ".gov.tr", ".com", ".net", ".org", ".aero", ".asia", ".biz", ".cat", ".coop", ".edu", ".gov", ".info", ".int", ".jobs", ".mil", ".mobi", ".museum", ".name", ".pro", ".tel",".travel"]
+d_list = [".com.tr", ".biz.tr", ".info.tr", ".org.tr", ".av.tr", ".pol.tr", ".bel.tr", ".mil.tr", ".bbs.tr", ".k12.tr", ".edu.tr", ".name.tr", ".net.tr", ".gov.tr", ".com", ".net", ".org", ".aero", ".asia", ".biz", ".cat", ".coop", ".edu", ".gov", ".info", ".int", ".jobs", ".mil", ".mobi", ".museum", ".name", ".pro", ".tel",".travel",".news",".xyz"]
 
 
 def eprint(*args, **kwargs):
@@ -73,9 +74,17 @@ def main():
             {key_name:"151.101.65.195"},
             {"mail.{}".format(key_name):"92.45.23.132"}
             ],
+            "TXT": [
+               { key_name: "v=spf1 include:valuezon.com -all"},
+               { key_name: "spf2.0/pra include:valuezon.com -all"}
+            ],
+            "MX": [
+                {key_name : "mail.{}".format(key_name)}
+            ],
             "_dmarc.{}".format(key_name):"v=DMARC1; p=none; fo=1; rua=mailto:admin@{}; ruf=mailto:admin@{}; rf=afrf; pct=100".format(key_name,key_name),
             "{}._domainkey.{}".format(s,key_name):pub,
-            s:priv
+            s:priv,
+            "dkim-selector": "{}".format(s)
         }
         return keys
     elif request.args.get("d"):
@@ -86,6 +95,14 @@ def main():
             if i in d:
                 clean_domain = d.replace(i, "")
                 break
+            else:
+                sayi = re.findall(r"\.",d)
+                if len(sayi) > 1:
+                    x = re.search(r"\.\w+[.]\w+", d) 
+                else:
+                    x = re.search(r"\.\w+", d)
+                d_list.append(x.group())
+
 
         key_name = d
         #key_type = 'rsa'
@@ -101,9 +118,17 @@ def main():
             {d:"151.101.65.195"},
             {"mail.{}".format(d):"92.45.23.132"}
             ],
+             "TXT": [
+               { d: "v=spf1 include:valuezon.com -all"},
+               { d: "spf2.0/pra include:valuezon.com -all"}
+            ],
+            "MX": [
+                {d : "mail.{}".format(d)}
+            ],
             "_dmarc.{}".format(d):"v=DMARC1; p=none; fo=1; rua=mailto:admin@{}; ruf=mailto:admin@{}; rf=afrf; pct=100".format(d,d),
             "{}._domainkey.{}".format(clean_domain,d):pub,
-            clean_domain:priv
+            clean_domain:priv,
+            "dkim-selector": "{}".format(clean_domain)
         }
         return keys
     else:
